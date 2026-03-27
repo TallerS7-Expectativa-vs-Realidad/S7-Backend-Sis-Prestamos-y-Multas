@@ -1,5 +1,35 @@
 # TEST_CASES
 
+## HU-01 - Consultar estado y disponibilidad de un libro
+
+### Fuente de verdad
+
+- Spec aprobada: `.github/specs/hu-01-consultar-estado-disponibilidad-libro.spec.md`
+- Historia base: `USER_STORIES.md`
+- Contrato observable actual: `GET /api/v1/loans/{name}`
+
+### Cobertura priorizada
+
+- Smoke y crítico operacional: `TC-HU01-02`
+- Happy path de disponibilidad con historial: `TC-HU01-01`
+- Borde funcional por ausencia de historial: `TC-HU01-03`
+
+### Datos base sugeridos
+
+| Alias | Datos | Uso |
+| --- | --- | --- |
+| `BOOK-AVAILABLE-HISTORY-01` | `id_book=B-0901`, `title=Don Quijote`, último estado `RETURNED` | Libro disponible por historial cerrado |
+| `BOOK-ON-LOAN-HISTORY-01` | `id_book=B-0902`, `title=La vorágine`, último estado `ON_LOAN` | Libro no disponible por préstamo activo |
+| `BOOK-NO-HISTORY-QUERY-01` | `name=Manual de estanterías invisibles`, sin coincidencias en `loan_books` | Ausencia de historial operativo |
+
+### Matriz HU-01
+
+| Historia de Usuario asociada | ID del Caso | Escenario Gherkin | Precondiciones | Datos de entrada | Pasos de ejecución | Resultado esperado | Resultado obtenido | Estado | Prioridad |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| HU-01 | `TC-HU01-01` | Dado que existe un libro cuyo último registro en historial está en `RETURNED`.<br>Cuando el bibliotecario consulta el libro por nombre.<br>Entonces el sistema informa la consulta correctamente y lo deja interpretable como disponible. | `BOOK-AVAILABLE-HISTORY-01` existe en `loan_books`.<br>Su último estado registrado es `RETURNED`. | `name=Don Quijote`. | 1. Enviar `GET /api/v1/loans/Don%20Quijote`.<br>2. Verificar la respuesta HTTP.<br>3. Validar la estructura funcional de la respuesta.<br>4. Confirmar que el resultado corresponde al último estado del historial. | `HTTP 200`.<br>`success=true`.<br>`message="Consulta realizada correctamente."`.<br>`data` contiene al menos un resultado con `id=B-0901`, `name=Don Quijote` y `status=RETURNED`.<br>Operativamente el libro queda interpretable como disponible para préstamo. | `Sin ejecutar` | `Sin ejecutar` | Alto |
+| HU-01 | `TC-HU01-02` | Dado que existe un libro cuyo último registro en historial está en `ON_LOAN`.<br>Cuando el bibliotecario consulta el libro por nombre.<br>Entonces el sistema informa que el libro tiene un préstamo activo y no está disponible. | `BOOK-ON-LOAN-HISTORY-01` existe en `loan_books`.<br>Su último estado registrado es `ON_LOAN`. | `name=La vorágine`. | 1. Enviar `GET /api/v1/loans/La%20vor%C3%A1gine`.<br>2. Verificar la respuesta HTTP.<br>3. Validar la estructura funcional de la respuesta.<br>4. Confirmar que el historial más reciente conserva estado activo. | `HTTP 200`.<br>`success=true`.<br>`message="Consulta realizada correctamente."`.<br>`data` contiene al menos un resultado con `id=B-0902`, `name=La vorágine` y `status=ON_LOAN`.<br>Operativamente el libro queda interpretable como no disponible para préstamo. | `Sin ejecutar` | `Sin ejecutar` | Crítico |
+| HU-01 | `TC-HU01-03` | Dado que la búsqueda no encuentra historial previo en `loan_books` para el nombre consultado.<br>Cuando el bibliotecario realiza la consulta.<br>Entonces el sistema informa la ausencia de historial y considera el libro disponible sin hablar de inexistencia bibliográfica. | `BOOK-NO-HISTORY-QUERY-01` no tiene coincidencias previas en `loan_books`. | `name=Manual de estanterías invisibles`. | 1. Enviar `GET /api/v1/loans/Manual%20de%20estanter%C3%ADas%20invisibles`.<br>2. Verificar la respuesta HTTP.<br>3. Validar la estructura funcional de la respuesta.<br>4. Confirmar que el mensaje describe ausencia de historial y no inexistencia del libro. | `HTTP 200`.<br>`success=true`.<br>`data=[]`.<br>`message="El libro no registra historial de préstamo y se considera disponible para préstamo."`.<br>La respuesta no afirma que el libro no exista; solo informa ausencia de historial operativo. | `Sin ejecutar` | `Sin ejecutar` | Alto |
+
 ## HU-02 - Registrar préstamo de un libro a un lector habilitado
 
 ### Fuente de verdad
@@ -110,6 +140,7 @@
 
 ## Lista rápida para sub-tareas en GitHub Projects
 
+- HU-01: `TC-HU01-01`, `TC-HU01-02`, `TC-HU01-03`
 - HU-02: `TC-HU02-01`, `TC-HU02-02`, `TC-HU02-03`, `TC-HU02-04`
 - HU-03: `TC-HU03-01`, `TC-HU03-02`, `TC-HU03-03`, `TC-HU03-04`
 - HU-04: `TC-HU04-01`, `TC-HU04-02`, `TC-HU04-03`, `TC-HU04-04`, `TC-HU04-05`

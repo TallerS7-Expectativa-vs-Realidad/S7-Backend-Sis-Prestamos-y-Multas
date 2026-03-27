@@ -4,7 +4,7 @@
 
 - Proyecto: Sistema de Préstamos y Multas
 - Sistema bajo prueba: aplicación de gestión de préstamos, devoluciones y multas de biblioteca
-- Versión del plan: 0.2
+- Versión del plan: 0.3
 - Fecha: 2026-03-27
 
 ## 2. Contexto
@@ -15,13 +15,13 @@ El sistema permite registrar préstamos y devoluciones de libros, controlar la d
 
 ### Dentro del ciclo
 
+- HU-01: consultar estado y disponibilidad de un libro
 - HU-02: registrar préstamo de un libro disponible a un lector habilitado
 - HU-03: registrar devolución de un libro dentro del plazo
 - HU-04: registrar devolución tardía y generar multa Fibonacci
 
 ### Fuera del ciclo
 
-- HU-01: consultar estado y disponibilidad de un libro
 - HU-05: consultar préstamos vencidos y lector responsable
 - HU-06: registrar pago total de multa y rehabilitar lector
 - Catálogo maestro de libros, prórrogas, reservas, notificaciones y reportería
@@ -32,6 +32,7 @@ La aplicación bajo prueba es el sistema de préstamos y multas como producto fu
 
 ### Funcionalidades cubiertas
 
+- Consulta mínima de disponibilidad por historial, incluyendo libro disponible, libro con préstamo activo y ausencia de historial
 - Registro de préstamo válido y rechazos por indisponibilidad, deuda pendiente y plazo inválido
 - Registro de devolución en fecha sin generación de multa
 - Registro de devolución tardía con cálculo de mora y creación de deuda pendiente
@@ -44,6 +45,7 @@ La estrategia será de riesgo, priorizando reglas críticas de negocio, validaci
 
 - Pruebas funcionales sobre escenarios críticos y altos por historia de usuario
 - Validación de respuestas funcionales del sistema
+- Validación de disponibilidad operativa a partir del último estado en historial y de la ausencia de historial
 - Verificación de persistencia en `loan_books` y `debt_reader`
 - Revisión de regresión sobre validaciones y cortes Fibonacci
 
@@ -68,6 +70,7 @@ La estrategia será de riesgo, priorizando reglas críticas de negocio, validaci
 - Los casos críticos de la historia fueron planificados formalmente para esta entrega documental
 - No quedan defectos críticos o altos sin registrar cuando la historia entre a ejecución QA
 - Existe trazabilidad entre historia, caso, evidencia y resultado esperado
+- En HU-01 se validan disponibilidad por `RETURNED`, indisponibilidad por `ON_LOAN` y ausencia de historial sin tratarla como inexistencia bibliográfica
 - En HU-04 se validan los cortes obligatorios de `1`, `7`, `8`, `15` y `22` días
 
 ## 7. Entorno de pruebas
@@ -108,7 +111,7 @@ La estimación de QA se plantea en Story Points y se distribuye en micro-sprints
 | --- | --- | --- |
 | 1 | Ajuste del plan, definición de alcance y matriz inicial de casos | 3 |
 | 2 | Preparación de datos, refinamiento de escenarios y trazabilidad | 3 |
-| 3 | Ejecución funcional de HU-02, HU-03 y HU-04 | 5 |
+| 3 | Ejecución funcional de HU-01, HU-02, HU-03 y HU-04 | 5 |
 | 4 | Re-ejecución, consolidación de evidencia y cierre QA | 3 |
 
 ## 11. Entregables de prueba
