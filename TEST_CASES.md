@@ -138,6 +138,37 @@
 | HU-04 | `TC-HU04-04` | Dado que existe un préstamo activo vencido.<br>Cuando el bibliotecario registra la devolución con 15 días de mora.<br>Entonces el sistema cambia al tramo de semana 3 y crea deuda acumulada de 4 unidades Fibonacci. | `LOAN-LATE-15D-01` en `ON_LOAN`.<br>No existe deuda previa para ese `loan_id`. | `id_book=B-1204`.<br>`id_reader=R-2204`.<br>`type_id_reader=CC`.<br>`date_return=2026-04-25`.<br>`base_fib_amount=2.00`. | 1. Enviar `PATCH /api/v1/loans`.<br>2. Verificar la respuesta HTTP.<br>3. Confirmar cierre del préstamo.<br>4. Confirmar deuda creada en `debt_reader`. | `HTTP 200`.<br>`days_late=15`.<br>`weeks=3`.<br>`units_fib=4`.<br>`amount_debt=8.00`. | `Sin ejecutar` | `Sin ejecutar` | Alto |
 | HU-04 | `TC-HU04-05` | Dado que existe un préstamo activo vencido.<br>Cuando el bibliotecario registra la devolución con 22 días de mora.<br>Entonces el sistema cambia al tramo de semana 4 y crea deuda acumulada de 7 unidades Fibonacci. | `LOAN-LATE-22D-01` en `ON_LOAN`.<br>No existe deuda previa para ese `loan_id`. | `id_book=B-1205`.<br>`id_reader=R-2205`.<br>`type_id_reader=TI`.<br>`date_return=2026-05-02`.<br>`base_fib_amount=2.00`. | 1. Enviar `PATCH /api/v1/loans`.<br>2. Verificar la respuesta HTTP.<br>3. Confirmar cierre del préstamo.<br>4. Confirmar deuda creada en `debt_reader`. | `HTTP 200`.<br>`days_late=22`.<br>`weeks=4`.<br>`units_fib=7`.<br>`amount_debt=14.00`. | `Sin ejecutar` | `Sin ejecutar` | Alto |
 
+## HU-05 - Consultar préstamos vencidos y lector responsable
+
+### Fuente de verdad
+
+- Spec aprobada: `.github/specs/hu-05-consultar-préstamos-vencidos-y-lector.spec.md`
+- Historia base: `USER_STORIES.md`
+- Contrato observable actual: `GET /api/v1/loans/outTime`
+
+### Cobertura priorizada
+
+- Smoke y crítico operacional: `TC-HU05-01`
+- Alto de gestión sin atrasos: `TC-HU05-02`
+- Alto de exclusión correcta de registros no vencidos: `TC-HU05-03`
+
+### Datos base sugeridos
+
+| Alias | Datos | Uso |
+| --- | --- | --- |
+| `OVERDUE-LOAN-01` | `loan_id=L-5001`, `id_book=B-1251`, `title=La Odisea`, `type_id_reader=CC`, `id_reader=R-2251`, `name_reader=Sara Mena`, `state=ON_LOAN`, `date_limit=2026-03-20`, `date_return=null` | Préstamo vencido visible en consulta |
+| `OVERDUE-LOAN-02` | `loan_id=L-5002`, `id_book=B-1252`, `title=El Aleph`, `type_id_reader=TI`, `id_reader=R-2252`, `name_reader=Bruno Paz`, `state=ON_LOAN`, `date_limit=2026-03-24`, `date_return=null` | Segundo préstamo vencido para validar listado múltiple |
+| `ACTIVE-NOT-DUE-01` | `loan_id=L-5003`, `id_book=B-1253`, `title=Ensayo sobre la ceguera`, `type_id_reader=CI`, `id_reader=R-2253`, `name_reader=Julia Lara`, `state=ON_LOAN`, `date_limit=2026-03-30`, `date_return=null` | Préstamo vigente que no debe aparecer |
+| `RETURNED-PAST-LIMIT-01` | `loan_id=L-5004`, `id_book=B-1254`, `title=La tregua`, `type_id_reader=DNI`, `id_reader=R-2254`, `name_reader=Marco Gil`, `state=RETURNED`, `date_limit=2026-03-10`, `date_return=2026-03-18` | Préstamo cerrado que no debe mezclarse en la consulta |
+
+### Matriz HU-05
+
+| Historia de Usuario asociada | ID del Caso | Escenario Gherkin | Precondiciones | Datos de entrada | Pasos de ejecución | Resultado esperado | Resultado obtenido | Estado | Prioridad |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| HU-05 | `TC-HU05-01` | Dado que existen préstamos fuera de plazo.<br>Cuando el bibliotecario consulta los préstamos vencidos.<br>Entonces el sistema lista solo los atrasados e identifica el lector responsable de cada uno. | Existen `OVERDUE-LOAN-01` y `OVERDUE-LOAN-02` en `loan_books`.<br>Ambos están en `state=ON_LOAN` con `date_limit` menor a la fecha actual.<br>No hay filtros adicionales aplicados en el request. | Sin body ni query params.<br>Endpoint `GET /api/v1/loans/outTime`. | 1. Enviar `GET /api/v1/loans/outTime`.<br>2. Verificar la respuesta HTTP.<br>3. Validar la estructura funcional de la respuesta.<br>4. Confirmar que cada fila listada incluye libro, lector responsable, estado y `date_limit`.<br>5. Verificar que `date_return` llegue en `null` para los préstamos activos vencidos. | `HTTP 200`.<br>`data` contiene al menos `L-5001` y `L-5002`.<br>`count=2` o equivalente al total de filas vencidas preparadas.<br>Cada elemento expone `loan_id`, `id_book`, `title`, `state=ON_LOAN`, `id_reader`, `name_reader`, `date_limit` y `date_return=null`.<br>La salida sirve para gestión operativa porque permite identificar qué libro está vencido y quién es el lector responsable. | `Sin ejecutar` | `Sin ejecutar` | Crítico |
+| HU-05 | `TC-HU05-02` | Dado que no existen préstamos vencidos.<br>Cuando el bibliotecario consulta la bandeja de atrasos.<br>Entonces el sistema informa que no hay registros fuera de plazo sin mezclar préstamos vigentes o cerrados. | No existen filas en `loan_books` con `state=ON_LOAN` y `date_limit` menor a la fecha actual.<br>Si existen préstamos, todos están vigentes o cerrados. | Sin body ni query params.<br>Endpoint `GET /api/v1/loans/outTime`. | 1. Preparar un set sin préstamos vencidos.<br>2. Enviar `GET /api/v1/loans/outTime`.<br>3. Verificar la respuesta HTTP.<br>4. Confirmar que la consulta no devuelve filas operativas vencidas.<br>5. Si se valida la UI, comprobar el estado vacío mostrado al usuario. | `HTTP 200`.<br>`data=[]`.<br>`count=0`.<br>La consulta informa ausencia de atrasos mediante lista vacía.<br>Si se valida la vista, se muestra un estado vacío equivalente a "No hay préstamos vencidos en este momento". | `Sin ejecutar` | `Sin ejecutar` | Alto |
+| HU-05 | `TC-HU05-03` | Dado que existe una mezcla de préstamos vencidos, vigentes y ya cerrados.<br>Cuando el bibliotecario consulta los préstamos fuera de plazo.<br>Entonces el sistema excluye los registros vigentes o `RETURNED` y deja solo los realmente atrasados. | Existen `OVERDUE-LOAN-01`, `ACTIVE-NOT-DUE-01` y `RETURNED-PAST-LIMIT-01` en `loan_books`.<br>`OVERDUE-LOAN-01` cumple `state=ON_LOAN` y `date_limit` vencida.<br>`ACTIVE-NOT-DUE-01` sigue vigente.<br>`RETURNED-PAST-LIMIT-01` está cerrado con `state=RETURNED`. | Sin body ni query params.<br>Endpoint `GET /api/v1/loans/outTime`. | 1. Confirmar en base de datos la mezcla de estados y fechas límite.<br>2. Enviar `GET /api/v1/loans/outTime`.<br>3. Verificar la respuesta HTTP.<br>4. Confirmar que `L-5001` sí aparece en `data`.<br>5. Confirmar que `L-5003` y `L-5004` no aparecen en la respuesta.<br>6. Validar que todas las filas devueltas cumplan `state=ON_LOAN` y `date_limit` menor a hoy. | `HTTP 200`.<br>`data` contiene solo préstamos con `state=ON_LOAN` y `date_limit` vencida.<br>No aparecen préstamos vigentes ni registros con `state=RETURNED`.<br>La consulta no mezcla ruido operativo y conserva únicamente atrasos reales para seguimiento. | `Sin ejecutar` | `Sin ejecutar` | Alto |
+
 ## HU-06 - Registrar pago total de multa y rehabilitar lector
 
 ### Fuente de verdad
@@ -180,4 +211,5 @@
 - HU-02: `TC-HU02-01`, `TC-HU02-02`, `TC-HU02-03`, `TC-HU02-04`
 - HU-03: `TC-HU03-01`, `TC-HU03-02`, `TC-HU03-03`, `TC-HU03-04`
 - HU-04: `TC-HU04-01`, `TC-HU04-02`, `TC-HU04-03`, `TC-HU04-04`, `TC-HU04-05`
+- HU-05: `TC-HU05-01`, `TC-HU05-02`, `TC-HU05-03`
 - HU-06: `TC-HU06-01`, `TC-HU06-02`, `TC-HU06-03`, `TC-HU06-04`
