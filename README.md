@@ -174,9 +174,13 @@ ASDD se usará como marco de trabajo y trazabilidad. No obliga a copiar literalm
 
 ## Documentos principales
 
-- [PRD.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/PRD.md)
-- [USER_STORIES.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/USER_STORIES.md)
-- [SUBTASKS.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/SUBTASKS.md)
+- [PRD.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/PRD.md)
+- [USER_STORIES.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/USER_STORIES.md)
+- [SUBTASKS.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/SUBTASKS.md)
+- [REALITY_CHECK.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/REALITY_CHECK.md)
+- [TEST_CASES.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/TEST_CASES.md)
+- [TEST_PAN.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/TEST_PLAN.md)
+
 
 ## Tablero de trabajo
 
