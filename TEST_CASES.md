@@ -138,9 +138,46 @@
 | HU-04 | `TC-HU04-04` | Dado que existe un préstamo activo vencido.<br>Cuando el bibliotecario registra la devolución con 15 días de mora.<br>Entonces el sistema cambia al tramo de semana 3 y crea deuda acumulada de 4 unidades Fibonacci. | `LOAN-LATE-15D-01` en `ON_LOAN`.<br>No existe deuda previa para ese `loan_id`. | `id_book=B-1204`.<br>`id_reader=R-2204`.<br>`type_id_reader=CC`.<br>`date_return=2026-04-25`.<br>`base_fib_amount=2.00`. | 1. Enviar `PATCH /api/v1/loans`.<br>2. Verificar la respuesta HTTP.<br>3. Confirmar cierre del préstamo.<br>4. Confirmar deuda creada en `debt_reader`. | `HTTP 200`.<br>`days_late=15`.<br>`weeks=3`.<br>`units_fib=4`.<br>`amount_debt=8.00`. | `Sin ejecutar` | `Sin ejecutar` | Alto |
 | HU-04 | `TC-HU04-05` | Dado que existe un préstamo activo vencido.<br>Cuando el bibliotecario registra la devolución con 22 días de mora.<br>Entonces el sistema cambia al tramo de semana 4 y crea deuda acumulada de 7 unidades Fibonacci. | `LOAN-LATE-22D-01` en `ON_LOAN`.<br>No existe deuda previa para ese `loan_id`. | `id_book=B-1205`.<br>`id_reader=R-2205`.<br>`type_id_reader=TI`.<br>`date_return=2026-05-02`.<br>`base_fib_amount=2.00`. | 1. Enviar `PATCH /api/v1/loans`.<br>2. Verificar la respuesta HTTP.<br>3. Confirmar cierre del préstamo.<br>4. Confirmar deuda creada en `debt_reader`. | `HTTP 200`.<br>`days_late=22`.<br>`weeks=4`.<br>`units_fib=7`.<br>`amount_debt=14.00`. | `Sin ejecutar` | `Sin ejecutar` | Alto |
 
+## HU-06 - Registrar pago total de multa y rehabilitar lector
+
+### Fuente de verdad
+
+- Spec aprobada: `.github/specs/hu-06-registrar-pago-total-multa-rehabilitar-lector.spec.md`
+- Historia base: `USER_STORIES.md`
+- Contrato observable actual de pago: `PATCH /api/v1/debts/{id_debt}`
+- Validación cruzada de rehabilitación: `POST /api/v1/loans`
+
+### Cobertura priorizada
+
+- Smoke y crítico de rehabilitación encadenada: `TC-HU06-04`
+- Happy path principal de pago total: `TC-HU06-01`
+- Alto de rechazo por deuda no pagable: `TC-HU06-02`
+- Alto de habilitación operativa posterior al pago: `TC-HU06-03`
+
+### Datos base sugeridos
+
+| Alias | Datos | Uso |
+| --- | --- | --- |
+| `DEBT-PENDING-01` | `id_debt=D-6001`, `loan_id=L-6001`, `type_id_reader=CI`, `id_reader=R-2301`, `name_reader=María León`, `amount_debt=14.00`, `state_debt=PENDING` | Pago total exitoso y rehabilitación |
+| `DEBT-PAID-01` | `id_debt=D-6002`, `loan_id=L-6002`, `type_id_reader=DNI`, `id_reader=R-2302`, `name_reader=Luis Pardo`, `amount_debt=8.00`, `state_debt=PAID` | Rechazo por deuda ya resuelta |
+| `DEBT-NOT-FOUND-01` | `id_debt=999999`, sin coincidencias en `debt_reader` | Rechazo por deuda inexistente |
+| `BOOK-AVAILABLE-04` | `id_book=B-1301`, `title=El otoño del patriarca`, sin préstamo activo | Nuevo préstamo tras rehabilitación |
+| `BOOK-AVAILABLE-05` | `id_book=B-1302`, `title=La casa verde`, sin préstamo activo | Secuencia rechazo antes y aceptación después |
+| `READER-REHAB-01` | `type_id_reader=CI`, `id_reader=R-2301`, `name_reader=María León`, con deuda más reciente `PENDING` y luego `PAID` | Flujo principal HU-06 |
+
+### Matriz HU-06
+
+| Historia de Usuario asociada | ID del Caso | Escenario Gherkin | Precondiciones | Datos de entrada | Pasos de ejecución | Resultado esperado | Resultado obtenido | Estado | Prioridad |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| HU-06 | `TC-HU06-01` | Dado que el lector tiene una deuda pendiente.<br>Cuando el bibliotecario registra el pago total.<br>Entonces el sistema marca la deuda como `PAID` y el lector deja de figurar como bloqueado. | `DEBT-PENDING-01` existe en `debt_reader` con `state_debt=PENDING`.<br>No existe otro pago posterior para la misma deuda. | `id_debt=D-6001`.<br>Body: `state_debt=PAID`. | 1. Enviar `PATCH /api/v1/debts/D-6001`.<br>2. Verificar la respuesta HTTP.<br>3. Consultar `debt_reader` por `id_debt`.<br>4. Confirmar que el lector ya no aparece con esa deuda en estado `PENDING`. | `HTTP 200`.<br>`success=true`.<br>`data.id_debt=D-6001`.<br>`data.state_debt=PAID`.<br>`amount_debt` se conserva como valor histórico pagado y no queda saldo residual pendiente para esa deuda.<br>El lector deja de figurar bloqueado por `DEBT-PENDING-01`. | `Sin ejecutar` | `Sin ejecutar` | Alto |
+| HU-06 | `TC-HU06-02` | Dado que el bibliotecario intenta pagar una deuda inexistente o ya resuelta.<br>Cuando registra el pago total.<br>Entonces el sistema rechaza la operación y no modifica deudas existentes. | Variante A: `DEBT-NOT-FOUND-01` no existe en `debt_reader`.<br>Variante B: `DEBT-PAID-01` existe con `state_debt=PAID`. | Variante A: `id_debt=999999`, body `state_debt=PAID`.<br>Variante B: `id_debt=D-6002`, body `state_debt=PAID`. | 1. Enviar `PATCH /api/v1/debts/999999`.<br>2. Verificar rechazo por deuda inexistente.<br>3. Enviar `PATCH /api/v1/debts/D-6002`.<br>4. Verificar rechazo por deuda ya pagada.<br>5. Confirmar que no hubo cambios en `debt_reader`. | Variante A: `HTTP 404` con código `DEBT_NOT_FOUND`.<br>Variante B: `HTTP 409` con código `DEBT_ALREADY_PAID`.<br>No se crea ni modifica ninguna deuda.<br>La operación no deja efectos laterales sobre otros lectores o préstamos. | `Sin ejecutar` | `Sin ejecutar` | Alto |
+| HU-06 | `TC-HU06-03` | Dado que el lector tenía una deuda pendiente y ya registró el pago total.<br>Cuando el bibliotecario intenta un nuevo préstamo con un libro disponible.<br>Entonces el sistema permite la operación porque el lector quedó rehabilitado. | `READER-REHAB-01` tuvo una deuda previa y la más reciente ya quedó en `PAID`.<br>`BOOK-AVAILABLE-04` está disponible.<br>No existe otra deuda `PENDING` para `R-2301`. | `BOOK-AVAILABLE-04`.<br>`READER-REHAB-01`.<br>`loan_days=7`. | 1. Confirmar en `debt_reader` que la deuda más reciente del lector está en `PAID`.<br>2. Enviar `POST /api/v1/loans` con `B-1301` y `R-2301`.<br>3. Verificar la respuesta HTTP.<br>4. Confirmar creación del préstamo en `loan_books`. | `HTTP 201`.<br>Se crea un nuevo préstamo para `B-1301`.<br>El nuevo registro queda con `state=ON_LOAN` y `date_return=null`.<br>No se retorna `READER_HAS_DEBT`.<br>La rehabilitación se considera efectiva porque el lector vuelve a quedar habilitado para prestar. | `Sin ejecutar` | `Sin ejecutar` | Alto |
+| HU-06 | `TC-HU06-04` | Dado que el lector tiene deuda pendiente y luego la paga totalmente.<br>Cuando el bibliotecario intenta prestar antes y después del pago.<br>Entonces el sistema rechaza el préstamo mientras la deuda está `PENDING` y lo acepta una vez queda en `PAID`. | `DEBT-PENDING-01` existe con `state_debt=PENDING` para `READER-REHAB-01`.<br>`BOOK-AVAILABLE-05` está disponible.<br>No existe préstamo activo previo sobre `B-1302`. | Antes del pago: `BOOK-AVAILABLE-05`, `READER-REHAB-01`, `loan_days=14`.<br>Pago: `id_debt=D-6001`, body `state_debt=PAID`.<br>Después del pago: mismos datos del préstamo. | 1. Enviar `POST /api/v1/loans` con `B-1302` y `R-2301` antes del pago.<br>2. Verificar rechazo y ausencia de inserción en `loan_books`.<br>3. Enviar `PATCH /api/v1/debts/D-6001` con `state_debt=PAID`.<br>4. Verificar actualización de la deuda.<br>5. Reenviar `POST /api/v1/loans` con los mismos datos.<br>6. Confirmar creación exitosa del préstamo. | Antes del pago: `HTTP 409` con código `READER_HAS_DEBT` y sin nuevo registro en `loan_books`.<br>Pago: `HTTP 200` con `state_debt=PAID`.<br>Después del pago: `HTTP 201` y nuevo préstamo creado con `state=ON_LOAN`.<br>Este caso valida de extremo a extremo que pago y rehabilitación son una misma cadena operativa. | `Sin ejecutar` | `Sin ejecutar` | Crítico |
+
 ## Lista rápida para sub-tareas en GitHub Projects
 
 - HU-01: `TC-HU01-01`, `TC-HU01-02`, `TC-HU01-03`
 - HU-02: `TC-HU02-01`, `TC-HU02-02`, `TC-HU02-03`, `TC-HU02-04`
 - HU-03: `TC-HU03-01`, `TC-HU03-02`, `TC-HU03-03`, `TC-HU03-04`
 - HU-04: `TC-HU04-01`, `TC-HU04-02`, `TC-HU04-03`, `TC-HU04-04`, `TC-HU04-05`
+- HU-06: `TC-HU06-01`, `TC-HU06-02`, `TC-HU06-03`, `TC-HU06-04`

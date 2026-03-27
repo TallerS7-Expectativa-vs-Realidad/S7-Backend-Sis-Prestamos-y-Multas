@@ -4,12 +4,12 @@
 
 - Proyecto: Sistema de Préstamos y Multas
 - Sistema bajo prueba: aplicación de gestión de préstamos, devoluciones y multas de biblioteca
-- Versión del plan: 0.3
+- Versión del plan: 0.4
 - Fecha: 2026-03-27
 
 ## 2. Contexto
 
-El sistema permite registrar préstamos y devoluciones de libros, controlar la disponibilidad operativa desde el historial y generar multas por mora con lógica Fibonacci. El problema de negocio que resuelve es evitar préstamos inválidos, cerrar devoluciones correctamente y mantener trazabilidad de deudas del lector.
+El sistema permite registrar préstamos y devoluciones de libros, controlar la disponibilidad operativa desde el historial, generar multas por mora con lógica Fibonacci y rehabilitar al lector tras el pago total de su deuda. El problema de negocio que resuelve es evitar préstamos inválidos, cerrar devoluciones correctamente y mantener trazabilidad de deudas del lector hasta su pago.
 
 ## 3. Alcance de las pruebas
 
@@ -19,11 +19,11 @@ El sistema permite registrar préstamos y devoluciones de libros, controlar la d
 - HU-02: registrar préstamo de un libro disponible a un lector habilitado
 - HU-03: registrar devolución de un libro dentro del plazo
 - HU-04: registrar devolución tardía y generar multa Fibonacci
+- HU-06: registrar pago total de multa y rehabilitar lector
 
 ### Fuera del ciclo
 
 - HU-05: consultar préstamos vencidos y lector responsable
-- HU-06: registrar pago total de multa y rehabilitar lector
 - Catálogo maestro de libros, prórrogas, reservas, notificaciones y reportería
 
 ## 4. Sistema bajo prueba
@@ -36,6 +36,7 @@ La aplicación bajo prueba es el sistema de préstamos y multas como producto fu
 - Registro de préstamo válido y rechazos por indisponibilidad, deuda pendiente y plazo inválido
 - Registro de devolución en fecha sin generación de multa
 - Registro de devolución tardía con cálculo de mora y creación de deuda pendiente
+- Registro de pago total de deuda con cambio de estado a `PAID` y rehabilitación operativa del lector
 
 ## 5. Estrategia de pruebas
 
@@ -47,7 +48,7 @@ La estrategia será de riesgo, priorizando reglas críticas de negocio, validaci
 - Validación de respuestas funcionales del sistema
 - Validación de disponibilidad operativa a partir del último estado en historial y de la ausencia de historial
 - Verificación de persistencia en `loan_books` y `debt_reader`
-- Revisión de regresión sobre validaciones y cortes Fibonacci
+- Revisión de regresión sobre validaciones, cortes Fibonacci y secuencia bloqueo por deuda → pago total → rehabilitación
 
 ### Sistema de triaje
 
@@ -72,6 +73,7 @@ La estrategia será de riesgo, priorizando reglas críticas de negocio, validaci
 - Existe trazabilidad entre historia, caso, evidencia y resultado esperado
 - En HU-01 se validan disponibilidad por `RETURNED`, indisponibilidad por `ON_LOAN` y ausencia de historial sin tratarla como inexistencia bibliográfica
 - En HU-04 se validan los cortes obligatorios de `1`, `7`, `8`, `15` y `22` días
+- En HU-06 se valida el rechazo por deuda pendiente, el pago total con `state_debt=PAID` y la rehabilitación efectiva para un nuevo préstamo
 
 ## 7. Entorno de pruebas
 
@@ -111,7 +113,7 @@ La estimación de QA se plantea en Story Points y se distribuye en micro-sprints
 | --- | --- | --- |
 | 1 | Ajuste del plan, definición de alcance y matriz inicial de casos | 3 |
 | 2 | Preparación de datos, refinamiento de escenarios y trazabilidad | 3 |
-| 3 | Ejecución funcional de HU-01, HU-02, HU-03 y HU-04 | 5 |
+| 3 | Ejecución funcional de HU-01, HU-02, HU-03, HU-04 y HU-06 | 5 |
 | 4 | Re-ejecución, consolidación de evidencia y cierre QA | 3 |
 
 ## 11. Entregables de prueba
@@ -128,5 +130,6 @@ La estimación de QA se plantea en Story Points y se distribuye en micro-sprints
 | Inconsistencias entre documentación, spec e implementación | Alto | Tomar como referencia prioritaria PRD, specs aprobadas y comportamiento observable validado |
 | Datos mal preparados o contaminados por historial previo | Alto | Definir datos base controlados y limpiar registros antes de cada ejecución crítica |
 | Error en cortes de mora o acumulación Fibonacci | Alto | Validar explícitamente los casos de `1`, `7`, `8`, `15` y `22` días |
+| Rehabilitación incompleta del lector tras marcar la deuda como `PAID` | Alto | Validar de forma encadenada el rechazo previo por `READER_HAS_DEBT`, el pago exitoso y la aceptación de un nuevo préstamo |
 | Retraso por curva de uso o preparación del entorno de prueba | Medio | Priorizar matriz, datos base y flujo crítico antes de ampliar cobertura |
 | Diferencia entre esfuerzo QA esperado y esfuerzo real del ejercicio | Medio | Distribuir trabajo en micro-sprints y ajustar prioridad por riesgo |
