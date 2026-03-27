@@ -101,8 +101,49 @@ Instrucciones para rellenar la plantilla:
 Debido a la división de trabajo en distintas ramas para seguir el flujo de trabajo con Git Flow, el marco de trabajo ASDD, tal cual como está construido, genera dificultades a la hora de integrar las implementaciones construidas ya que no se tiene un proceso previo de diseño UI/UX y un armado del esqueleto del proyecto, tanto frontend como backend, que todos los agentes deben seguir.
 
 
+## Reality Check del trabajo
+
+### Fantasía del backlog vs realidad del ciclo corto
+
+| Supuesto inicial | Realidad observada |
+| --- | --- |
+| QA podía entrar al final a validar si "funcionaba". | QA tuvo que participar desde antes con plan, matriz, Gherkin, revisión de contratos, datos de prueba, evidencia y re-ejecución. |
+| Las historias pequeñas en puntos implicaban validación pequeña. | Historias cortas como HU-04 y HU-06 arrastraron validaciones más costosas por reglas acumulativas, persistencia y dependencia entre flujos. |
+| Tener spec aprobada daba suficiente claridad para ejecutar rápido. | Varias validaciones exigieron contrastar spec, comportamiento observable y base de datos porque en un ciclo corto aparecieron ajustes, merges y diferencias de contrato. |
+| El esfuerzo fuerte estaba solo en desarrollar. | También hubo trabajo silencioso de QA para sostener trazabilidad, priorizar riesgos y evitar vender como estable algo que todavía pedía revalidación. |
+
+### Qué se subestimó y por qué
+
+- Se subestimó la lógica de multa Fibonacci. El problema no era solo calcular un número; había que validar cortes obligatorios de `1`, `7`, `8`, `15` y `22` días, revisar persistencia en `debt_reader` y confirmar que el préstamo quedara realmente cerrado.
+- Se subestimó el costo de preparar datos y ambiente para probar bien. En este proyecto no bastaba con llamar un endpoint: varias validaciones exigían limpiar datos, repetir escenarios y verificar estado real en PostgreSQL.
+- Se subestimó la diferencia entre "documentado" y "ejecutable hoy". Parte del trabajo de QA fue precisamente detectar cuándo una historia tenía spec y casos, pero todavía necesitaba estabilización o re-ejecución para sostener la evidencia.
+- Se subestimó el costo de la trazabilidad. En dos días parece tentador probar rápido y seguir, pero sin `TEST_PLAN.md`, `TEST_CASES.md`, Gherkin y registro de re-ejecuciones, después nadie puede demostrar qué quedó cubierto y qué no.
+
+### Valor real del MVP
+
+El MVP sí entrega valor real aunque el backlog ideal siempre parezca más elegante en papel. El flujo principal del negocio quedó representado: consultar disponibilidad, registrar préstamo, registrar devolución, calcular mora, generar deuda y cerrar el ciclo con pago y rehabilitación. Eso ya permite demostrar la operación esencial del sistema y responder al reto del taller.
+
+La parte honesta es esta: el valor no vino de cubrir un backlog infinito, sino de cerrar bien el núcleo operativo. Lo que quedó por fuera no invalida el MVP; lo que sí lo habría invalidado era fingir cobertura o dar por estable una regla crítica sin haberla trazado ni retestado.
+
+### Cómo se sostuvo la calidad en un ciclo corto
+
+- QA trabajó con enfoque basado en riesgo y no por volumen. Se priorizaron reglas de negocio capaces de romper el sistema de verdad: disponibilidad por historial, rechazo por deuda, devolución duplicada, cortes Fibonacci y rehabilitación del lector.
+- QA sostuvo la calidad con trazabilidad, no con promesas. El trabajo quedó aterrizado en `TEST_PLAN.md`, `TEST_CASES.md`, escenarios Gherkin y documentos de re-ejecución para defectos y validaciones manuales.
+- QA también funcionó como control de realidad entre backlog, spec e implementación. Cuando algo no estaba totalmente alineado, el valor fue hacerlo visible para evitar conclusiones falsas sobre el estado del sprint.
+- En un ciclo corto, QA no alcanzó a ser una fase final elegante; fue una actividad transversal para decidir qué era demostrable, qué requería revalidación y dónde estaba el riesgo real.
+
+### Aprendizajes accionables
+
+- Si se trabaja con ASDD y agentes en paralelo, el proyecto necesita antes un esqueleto técnico y contratos base más estables; si no, buena parte del tiempo se va en corregir integración en vez de validar valor.
+- QA debe estimarse como trabajo de diseño y control, no solo como ejecución al final. Plan, datos, evidencia y re-test también consumen tiempo y deben verse en la planificación.
+- En historias con reglas acumulativas o financieras, los casos de borde deben definirse desde el inicio. Si no se fijan temprano, el equipo termina descubriendo demasiado tarde dónde estaba el riesgo.
+- La documentación útil no es la que maquilla el sprint, sino la que distingue con claridad entre cobertura planificada, cobertura ejecutada y cobertura pendiente de revalidación.
+
+
 ## Conclusiones finales
 Una de las tareas subestimadas fue la adaptación de los documentos para trabajar con el marco de trabajo ASDD. Estos documentos necesitaron varias iteraciones de correcciones para adaptarlo al proyecto y la metodología de trabajo que se siguió.
+
+Desde QA, el trabajo tampoco fue "probar al final". Fue diseñar cobertura útil, priorizar por riesgo, contrastar documento contra comportamiento observable y dejar evidencia suficiente para que el cierre del taller no dependiera de fe sino de trazabilidad.
 
 Al utilizar el marco de trabajo ASDD, el foco principal (como DEV) no fue la implementación, ya que esto lo realizaban los agentes, sino la evaluación del resultado de los agentes verificando que cumplieran con las HUs, subtareas y specs definidos previamente.
 
