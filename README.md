@@ -1,210 +1,224 @@
-# Biblioteca: Sistema de Prestamos y Multas
+# Backend API - Sistema de Préstamos y Multas
 
-Repositorio de trabajo para el taller de la semana 7. El objetivo ya no es solo documentar el producto, sino usar esa base para construir un MVP funcional, integrado y trazable usando un flujo de trabajo compatible con ASDD.
+## Overview
 
-## Equipo
+Backend API for the library loan and fine management system. Built with Node.js, Express, and PostgreSQL.
 
-- [Alexander Molina](https://github.com/AlexRieger47) - QA
-- [Gabriel Perero](https://github.com/GabrielGNP) - DEV
+## Architecture
 
-## Qué problema resuelve
+```
+controllers/routes → services → repositories → database
+```
 
-La biblioteca necesita una forma clara y consistente de:
+### Directory Structure
 
-- saber si un libro está disponible o prestado;
-- registrar préstamos con fecha de devolución válida;
-- detectar devoluciones tardías;
-- calcular multas acumulativas por retraso;
-- bloquear nuevos préstamos a lectores con deuda pendiente;
-- rehabilitar al lector cuando paga la multa completa.
+```
+backend/
+├── src/
+│   ├── app.js                 # Express app factory
+│   ├── index.js              # Entry point
+│   ├── models/               # DTOs and validation schemas (Zod)
+│   │   ├── loan.js
+│   │   └── debt.js
+│   ├── repositories/         # Database access layer
+│   │   ├── LoanRepository.js
+│   │   └── DebtRepository.js
+│   ├── services/             # Business logic layer
+│   │   ├── LoanService.js
+│   │   └── DebtService.js
+│   ├── routes/               # HTTP routes (dependency injection)
+│   │   ├── loanRoutes.js
+│   │   └── debtRoutes.js
+│   └── middleware/           # Express middleware
+│       ├── errorHandler.js
+│       └── requestLogger.js
+├── db/
+│   ├── schema.sql           # Estructura de BD (leído por backend al iniciar)
+│   ├── initialize.js        # Inicializador: crea tablas si no existen
+│   └── migrate.js           # Script para ejecutar schema.sql (dev local)
+├── package.json
+├── Dockerfile
+├── .env.example
+└── .env                      # Local development config
+```
 
-En esta etapa el equipo busca aterrizar esas reglas en una implementación mínima que permita demostrar el flujo principal del negocio y preparar la evidencia QA del sprint.
+## Setup Instructions
 
-## Estado actual del proyecto
+### 1. Install Dependencies
 
-- Estado: en transición de MVP documental a MVP implementable.
-- Estrategia de trabajo: micro-sprints con reparto QA y DEV.
-- Framework de apoyo: ASDD como flujo de requerimiento -> spec -> implementación -> tests -> QA.
+```bash
+cd backend
+npm install
+```
 
-## Stack real del proyecto
+### 2. Environment Variables
 
-- Backend: JavaScript
-- Frontend: React
-- Base de Datos: PostgreSQL
+Copy `.env.example` to `.env` and update values if needed:
 
-## Alcance técnico actual del MVP
+```bash
+cp .env.example .env
+```
 
-La implementación actual se enfocará en el flujo principal del sistema:
+### 3. Database Setup
 
-- consulta mínima de disponibilidad de libro usando historial;
-- registro de préstamo;
-- devolución dentro del plazo;
-- devolución tardía con multa acumulativa;
-- bloqueo de préstamo a lector con deuda pendiente;
-- preparación documental para pago de deuda y rehabilitación.
+#### Auto-inicialización en el Backend
 
-## Decisiones de modelado para este sprint
+El backend ejecuta automáticamente al iniciar:
+1. **Verifica** si existen las tablas
+2. **Si NO existen**: Lee `schema.sql` y las crea
+3. **Si YA existen**: Sigue adelante (idempotente)
 
-Para no abrir alcance innecesario en este sprint:
+```bash
+# Con Docker - Las tablas se crean automáticamente
+docker compose up --build
+```
 
-- no habrá catálogo formal de libros;
-- no habrá recurso CRUD independiente de lectores;
-- el historial de préstamos será la fuente de verdad operativa sobre disponibilidad;
-- los datos del lector vivirán embebidos dentro del préstamo y la deuda;
-- las entidades mínimas del MVP son `loan_books` y `debt_reader`.
+### 4. Start Development Server
 
-Interpretación operativa acordada:
+```bash
+npm run dev
+```
 
-- si un libro no aparece en el historial, se asume que no tiene préstamos previos y está disponible para préstamo;
-- esto no significa que exista un catálogo completo de biblioteca, solo que el MVP trabaja con historial como fuente operativa.
+Server will run on `http://localhost:3000`
 
-### Estados oficiales
+## API Endpoints
 
-**loan.state**
-- `ON_LOAN`
-- `RETURNED`
+### Loans
 
-**debt.state_debt**
-- `PENDING`
-- `PAID`
+- `POST /api/v1/loans` - Register a new book loan
+  - Body: `{ id_book, title, type_id_reader, id_reader, name_reader, loan_days }`
+  - Returns: 201 (success), 400 (invalid), 409 (conflict)
 
-## Entidades mínimas
+- `GET /api/v1/loans/{name}` - Check book availability (HU-01)
 
-### `loan_books`
+- `PATCH /api/v1/loans` - Register book return (HU-03 / HU-04)
+  - Body: `{ date_return, type_id_reader, id_book?, id_reader?, name_reader?, base_fib_amount? }`
+  - Returns: 200 (success), 400 (invalid), 404 (loan not found), 409 (already returned)
 
-- `loan_id`
-- `id_book`
-- `title`
-- `state`
-- `type_id_reader`
-- `id_reader`
-- `name_reader`
-- `date_limit`
-- `date_return`
+- Compatibility aliases currently exposed: `POST|GET|PATCH /api/v1/loan...`
 
-### `debt_reader`
+### Debts
 
-- `id_debt`
-- `loan_id`
-- `type_id_reader`
-- `id_reader`
-- `name_reader`
-- `amount_debt`
-- `state_debt`
+- `GET /api/v1/debts/:id_reader` - Get pending debts for a reader
+  - Returns the pending debt records for the supplied reader id
 
-## Convenciones de API recomendadas
+- Compatibility alias currently exposed: `GET /api/v1/debt/:id_reader`
 
-- Actualmente el equipo identificó como base los recursos `loans` y `debts`.
-- Usar versión en la ruta: `/api/v1/...`;
+- `PATCH /api/v1/debts/{id_debt}` - Planned for HU-06 debt payment flow, not implemented yet
 
-Base sugerida para este MVP:
+## Business Rules
 
-- `GET /api/v1/loans/{name}`
-- `POST /api/v1/loans`
-- `PATCH /api/v1/loans`
-- `GET /api/v1/debts/...` para fases posteriores
-- `PATCH /api/v1/debts/{id}` para fases posteriores
+**HU-02: Register Book Loan**
 
-## Contexto ASDD para este repositorio
+- `loan_days` must be 7, 14, or 21 days
+- Book must be available (no active loans)
+- Reader must have no pending debts
+- Calculates `date_limit = today + loan_days`
 
-Uso recomendado:
+### Response Codes
 
-1. definir el requerimiento en `.github/requirements/`;
-2. generar spec en `.github/specs/`;
-3. revisar y aprobar la spec manualmente;
-4. implementar con la spec como fuente de verdad;
-5. derivar tests y artefactos QA desde la misma spec.
+- `201` - Loan created successfully
+- `400` - Invalid payload or invalid loan days (INVALID_PAYLOAD, INVALID_LOAN_DAYS)
+- `409` - Conflict: book not available or reader has debt (BOOK_NOT_AVAILABLE, READER_HAS_DEBT)
+- `500` - Internal server error
 
-ASDD se usará como marco de trabajo y trazabilidad. No obliga a copiar literalmente el stack del template, porque el stack real del proyecto es JavaScript + React + PostgreSQL.
+## Development Patterns
 
-## Qué incluye este repositorio
+### Dependency Injection
 
-- Un PRD con visión, reglas del negocio, alcance del MVP y riesgos.
-- Historias de usuario con valor de negocio, criterios de aceptación, escenarios Gherkin y Story Points.
-- Subtareas DEV y QA por cada historia.
-- Trazabilidad documental del flujo principal del MVP.
-- Referencia al tablero de GitHub Projects para el backlog del taller.
+Services are injected into route factories:
 
-## Alcance del MVP
+```javascript
+const loanService = new LoanService(loanRepository, debtRepository);
+const loanRouter = makeLoanRouter({ loanService });
+app.use('/api/v1/loans', loanRouter);
+```
 
-### Dentro del alcance
+### Error Handling
 
-- Registrar el préstamo de un libro disponible.
-- Permitir solo plazos de 7, 14 o 21 días.
-- Calcular automáticamente la fecha de devolución.
-- Registrar devoluciones dentro del plazo sin multa.
-- Registrar devoluciones tardías con multa acumulativa.
-- Aplicar lógica de multa Fibonacci por semanas de mora.
-- Consultar préstamos vencidos y lector responsable.
-- Registrar el pago total de una multa para rehabilitar al lector.
-- Bloquear préstamos a lectores con deuda pendiente.
+Errors are thrown with custom codes and status codes:
 
-### Fuera del alcance
+```javascript
+const error = new Error('Book is not available');
+error.code = 'BOOK_NOT_AVAILABLE';
+error.statusCode = 409;
+throw error;
+```
 
-- Prórrogas de préstamo.
-- Reservas.
-- Administración completa del catálogo.
-- Membresías o administración de usuarios.
-- Notificaciones automáticas.
-- Pagos parciales.
-- Reportería avanzada.
+### Database Operations
 
-## Historias del MVP
+All DB operations are async and wrapped in repositories:
 
-- HU-01: Consultar estado y disponibilidad de un libro.
-- HU-02: Registrar libro disponible a un lector habilitado.
-- HU-03: Registrar devolución de un libro dentro del plazo.
-- HU-04: Registrar devolución tardía y generar multa Fibonacci.
-- HU-05: Consultar libros fuera de plazo y lector responsable.
-- HU-06: Registrar el pago total de una multa y rehabilitación del lector.
+```javascript
+async insertLoan(loanData) {
+  const result = await this.pool.query(query, values);
+  return result.rows[0];
+}
+```
 
-## Reparto de trabajo DEV y QA
+## Testing
 
-### DEV
+Tests are handled by a dedicated Test Engineer (see project specs).
 
-- Traducir cada historia a componentes técnicos concretos.
-- Definir subtareas de UI, endpoints, persistencia, validaciones y lógica de dominio.
-- Aterrizar el comportamiento esperado del sistema en trabajo implementable.
+## Database Schema
 
-### QA
+### loan_books Table
 
-- Definir criterios de aceptación verificables.
-- Redactar escenarios Gherkin centrados en comportamiento de negocio.
-- Diseñar validaciones, alternos, bordes, datos de prueba y notas de calidad.
+```sql
+CREATE TABLE loan_books (
+  loan_id SERIAL PRIMARY KEY,
+  id_book VARCHAR(255),
+  title VARCHAR(500),
+  type_id_reader VARCHAR(50),
+  id_reader VARCHAR(255),
+  name_reader VARCHAR(255),
+  loan_days INTEGER CHECK (loan_days IN (7, 14, 21)),
+  state VARCHAR(50) CHECK (state IN ('ON_LOAN', 'RETURNED')),
+  date_limit TIMESTAMP,
+  date_return TIMESTAMP,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
 
-## Documentos principales
+### debt_reader Table
 
-- [PRD.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/PRD.md)
-- [USER_STORIES.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/USER_STORIES.md)
-- [SUBTASKS.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/SUBTASKS.md)
-- [TEST_PLAN.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/TEST_PLAN.md)
-- [TEST_CASES.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/TEST_CASES.md)
-- [REALITY_CHECK.md](https://github.com/TallerS7-Expectativa-vs-Realidad/S7-Sistema-de-Prestamos-y-Multas/blob/develop/REALITY_CHECK.md)
+```sql
+CREATE TABLE debt_reader (
+  id_debt SERIAL PRIMARY KEY,
+  loan_id INTEGER REFERENCES loan_books(loan_id),
+  type_id_reader VARCHAR(50),
+  id_reader VARCHAR(255),
+  name_reader VARCHAR(255),
+  units_fib INTEGER,
+  amount_debt NUMERIC(10, 2),
+  state_debt VARCHAR(50) CHECK (state_debt IN ('PENDING', 'PAID')),
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
 
+## Docker Deployment
 
+Build the backend image:
 
-## Tablero de trabajo
+```bash
+docker compose build backend
+```
 
-- [GitHub Projects del repositorio](https://github.com/users/GabrielGNP/projects/8/)
+Run with docker compose:
 
+```bash
+docker compose up
+```
 
+The API will be available at `http://localhost:3000`
 
-## Definition of Ready
+## Related Specifications
 
-Una historia se considera lista cuando:
-
-- Tiene valor de negocio claro.
-- Sus reglas relacionadas están identificadas.
-- Sus criterios de aceptación son entendibles y verificables.
-- Tiene subtareas DEV y QA coherentes.
-- Tiene una estimación razonable en Story Points.
-
-## Definition of Done
-
-Para este momento del taller, una historia se considera terminada cuando:
-
-- Tiene requerimiento y, cuando aplique, spec ASDD aprobada.
-- Mantiene consistencia con el PRD, las subtareas y el sprint activo.
-- Tiene comportamiento implementado o documentado según el alcance del sprint.
-- Tiene criterios de aceptación verificables.
-- Tiene evidencia QA o trazabilidad de validación.
+- [HU-01: Query Book Availability](../.github/specs/hu-01-consultar-estado-disponibilidad-libro.spec.md)
+- [HU-02: Register Loan (this feature)](../.github/specs/hu-02-registrar-prestamo-libro.spec.md)
+- [HU-03: Register On-time Return](../.github/specs/hu-03-registrar-devolucion-en-plazo.spec.md)
+- [HU-04: Register Late Return](../.github/specs/hu-04-registrar-devolucion-tardia-generar-multa.spec.md)
+- [HU-05: Query Overdue Loans](../.github/specs/hu-05-consultar-préstamos-vencidos-y-lector.spec.md)
+- [HU-06: Register Debt Payment](../.github/specs/hu-06-registrar-pago-total-multa-rehabilitar-lector.spec.md)
