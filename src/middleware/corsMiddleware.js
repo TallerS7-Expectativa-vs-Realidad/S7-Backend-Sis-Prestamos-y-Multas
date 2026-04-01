@@ -6,11 +6,13 @@ const cors = require('cors');
  */
 const corsOptions = {
   origin: [
-    'http://localhost:8080',
-    'http://localhost:3000',
-    'http://127.0.0.1:8080',
-    'http://127.0.0.1:3000',
-    'http://frontend:80',
+    'http://localhost:5173',  // Vite dev server (local)
+    'http://localhost:8080',  // Frontend (Docker)
+    'http://localhost:3000',  // Backend (local)
+    'http://127.0.0.1:5173',  // Vite dev server (127.0.0.1)
+    'http://127.0.0.1:8080',  // Frontend (127.0.0.1)
+    'http://127.0.0.1:3000',  // Backend (127.0.0.1)
+    'http://frontend:80',     // Frontend (Docker)
   ],
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
