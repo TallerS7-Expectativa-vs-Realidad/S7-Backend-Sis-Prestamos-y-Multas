@@ -1,103 +1,470 @@
 # Backend API - Sistema de Préstamos y Multas
 
-## Overview
+🏗️ **Este es un repositorio de servicios independientes dentro de la arquitectura modular del proyecto.**
 
-Backend API for the library loan and fine management system. Built with Node.js, Express, and PostgreSQL.
+Otros repositorios correlacionados:
+- [**Frontend**](../S7-Frontend-Sis-Prestamos-y-Multas/) - React + Vite
+- [**Arquitectura & Documentación**](../S7-Arquitectura/) - Specs, PRD, Test Plans
 
-## Architecture
+---
+
+## 📋 Descripción
+
+API REST para el sistema de gestión de préstamos de libros y cálculo de multas por devolución tardía. Construido con Node.js, Express y PostgreSQL.
+
+**Objetivo del MVP:**
+- Gestionar disponibilidad de libros mediante historial de préstamos
+- Registrar préstamos con fecha de devolución válida
+- Detectar devoluciones tardías y calcular multas con serie de Fibonacci
+- Bloquear nuevos préstamos a lectores con deuda pendiente
+- Rehabilitar lector al pagar la deuda completa
+
+---
+
+## 🏛️ Arquitectura
+
+### Patrón en Capas
 
 ```
-controllers/routes → services → repositories → database
+routes (HTTP) → services (lógica negocio) → repositories (DB) → PostgreSQL
 ```
 
-### Directory Structure
+### Estructura de Directorios
 
 ```
-backend/
+S7-Backend-Sis-Prestamos-y-Multas/
 ├── src/
-│   ├── app.js                 # Express app factory
-│   ├── index.js              # Entry point
-│   ├── models/               # DTOs and validation schemas (Zod)
-│   │   ├── loan.js
-│   │   └── debt.js
-│   ├── repositories/         # Database access layer
-│   │   ├── LoanRepository.js
-│   │   └── DebtRepository.js
-│   ├── services/             # Business logic layer
-│   │   ├── LoanService.js
-│   │   └── DebtService.js
-│   ├── routes/               # HTTP routes (dependency injection)
-│   │   ├── loanRoutes.js
-│   │   └── debtRoutes.js
-│   └── middleware/           # Express middleware
-│       ├── errorHandler.js
-│       └── requestLogger.js
+│   ├── index.js                    # Entry point
+│   ├── app.js                      # Express app setup
+│   ├── db/
+│   │   └── initialize.js           # Inicialización automática de BD
+│   ├── middleware/
+│   │   ├── errorHandler.js         # Manejo centralizado de errores
+│   │   ├── corsMiddleware.js       # CORS config
+│   │   └── requestLogger.js        # Logging de requests
+│   ├── models/
+│   │   ├── Loan.js                 # DTO Loan + validación (Zod)
+│   │   └── debt.js                 # DTO Debt + validación (Zod)
+│   ├── repositories/
+│   │   ├── loanRepository.js       # Acceso a datos: préstamos
+│   │   └── debtRepository.js       # Acceso a datos: deudas
+│   ├── services/
+│   │   ├── loanService.js          # Lógica: búsqueda y gestión de préstamos
+│   │   └── DebtService.js          # Lógica: cálculo de deudas y pagos
+│   └── routes/
+│       ├── loanRoutes.js           # Endpoints: GET, POST, PATCH /loans
+│       ├── debtRoutes.js           # Endpoints: POST /debt/pay
+│       └── readersRoutes.js        # Endpoints: lectores (opcional)
 ├── db/
-│   ├── schema.sql           # Estructura de BD (leído por backend al iniciar)
-│   ├── initialize.js        # Inicializador: crea tablas si no existen
-│   └── migrate.js           # Script para ejecutar schema.sql (dev local)
+│   ├── schema.sql                  # Esquema de base de datos
+│   ├── initialize.js               # Auto-inicialización al arrancar backend
+│   └── migrate.js                  # Script local para migrations (dev)
+├── tests/
+│   ├── unit/
+│   │   ├── repositories/           # Tests de acceso a datos
+│   │   └── services/               # Tests de lógica de negocio
+│   └── integration/
+│       └── routes/                 # Tests de endpoints
+├── Dockerfile                      # Imagen Docker del backend
+├── docker-compose.yml              # (En S7-Arquitectura) Orquestación
 ├── package.json
-├── Dockerfile
-├── .env.example
-└── .env                      # Local development config
+├── .env.example                    # Template de variables de entorno
+└── README.md
 ```
 
-## Setup Instructions
+---
 
-### 1. Install Dependencies
+## 🚀 Instalación y Configuración
+
+### Requisitos Previos
+
+- **Node.js** 18+ o **Docker**
+- **PostgreSQL** 15+ (proporcionado vía Docker)
+- **npm** o **yarn**
+
+### Opción A: Con Docker (Recomendado)
+
+Desde el directorio raíz (`S7-Arquitectura` o donde esté `docker-compose.yml`):
 
 ```bash
-cd backend
+docker compose up --build
+```
+
+El backend:
+1. Se construye desde `S7-Backend-Sis-Prestamos-y-Multas/Dockerfile`
+2. Conecta a PostgreSQL automáticamente
+3. Ejecuta `db/initialize.js` al iniciar → crea tablas si no existen
+4. Expone la API en `http://localhost:3000`
+
+### Opción B: Local (desarrollo)
+
+#### 1. Instalar dependencias
+
+```bash
+cd S7-Backend-Sis-Prestamos-y-Multas
 npm install
 ```
 
-### 2. Environment Variables
-
-Copy `.env.example` to `.env` and update values if needed:
+#### 2. Configurar variables de entorno
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Database Setup
+Editar `.env` según tu entorno local (por defecto conecta a `localhost:5432`):
 
-#### Auto-inicialización en el Backend
-
-El backend ejecuta automáticamente al iniciar:
-1. **Verifica** si existen las tablas
-2. **Si NO existen**: Lee `schema.sql` y las crea
-3. **Si YA existen**: Sigue adelante (idempotente)
-
-```bash
-# Con Docker - Las tablas se crean automáticamente
-docker compose up --build
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+PORT=3000
+NODE_ENV=development
 ```
 
-### 4. Start Development Server
+#### 3. Inicializar base de datos
+
+```bash
+npm run migrate
+```
+
+O iniciar el backend (ejecuta auto-inicialización):
 
 ```bash
 npm run dev
 ```
 
-Server will run on `http://localhost:3000`
+---
 
-## API Endpoints
+## 📡 Endpoints de API
 
-### Loans
+### Loans (Préstamos)
 
-- `POST /api/v1/loans` - Register a new book loan
-  - Body: `{ id_book, title, type_id_reader, id_reader, name_reader, loan_days }`
-  - Returns: 201 (success), 400 (invalid), 409 (conflict)
+| Método | Endpoint | Propósito | Estados |
+|--------|----------|----------|---------|
+| **GET** | `/api/v1/loans/{name}` | Buscar disponibilidad de libro | HU-01 ✅ |
+| **POST** | `/api/v1/loans` | Registrar nuevo préstamo | HU-02 |
+| **PATCH** | `/api/v1/loans` | Registrar devolución | HU-03, HU-04 |
+| **GET** | `/api/v1/loans/overdue` | Listar préstamos vencidos | HU-05 |
 
-- `GET /api/v1/loans/{name}` - Check book availability (HU-01)
+#### GET `/api/v1/loans/{name}` - Buscar libro
 
-- `PATCH /api/v1/loans` - Register book return (HU-03 / HU-04)
-  - Body: `{ date_return, type_id_reader, id_book?, id_reader?, name_reader?, base_fib_amount? }`
-  - Returns: 200 (success), 400 (invalid), 404 (loan not found), 409 (already returned)
+```bash
+curl http://localhost:3000/api/v1/loans/harry%20potter
+```
 
-- Compatibility aliases currently exposed: `POST|GET|PATCH /api/v1/loan...`
+**Response (200):**
+```json
+{
+  "available": true,
+  "book": {
+    "id_book": "B001",
+    "title": "Harry Potter",
+    "lastState": "RETURNED"
+  }
+}
+```
 
-### Debts
+#### POST `/api/v1/loans` - Registrar préstamo
+
+```bash
+curl -X POST http://localhost:3000/api/v1/loans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_book": "B001",
+    "title": "Harry Potter",
+    "type_id_reader": "CC",
+    "id_reader": "12345678",
+    "name_reader": "Juan Pérez",
+    "loan_days": 14
+  }'
+```
+
+**Response (201):** Loan created
+**Errores:**
+- `400` - Datos inválidos
+- `409` - Libro no disponible o lector con deuda pendiente
+
+#### PATCH `/api/v1/loans` - Registrar devolución
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/loans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "date_return": "2026-04-01",
+    "type_id_reader": "CC",
+    "id_reader": "12345678"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Loan processed",
+  "debt": null  // Si fue a tiempo; sino contiene deuda
+}
+```
+
+**Errores:**
+- `400` - Datos inválidos
+- `404` - Préstamo no encontrado
+- `409` - Préstamo ya devuelto
+
+### Debts (Deudas)
+
+| Método | Endpoint | Propósito | Estado |
+|--------|----------|----------|--------|
+| **GET** | `/api/v1/debt/{id_reader}` | Obtener deuda actual de lector | - |
+| **POST** | `/api/v1/debt/pay` | Registrar pago de deuda | HU-06 |
+
+#### POST `/api/v1/debt/pay` - Pagar deuda
+
+```bash
+curl -X POST http://localhost:3000/api/v1/debt/pay \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type_id_reader": "CC",
+    "id_reader": "12345678"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Debt paid successfully",
+  "reader": {
+    "id_reader": "12345678",
+    "name_reader": "Juan Pérez",
+    "state_debt": "PAID"
+  }
+}
+```
+
+**Errores:**
+- `400` - Lector sin deuda pendiente
+- `404` - Lector no encontrado
+
+---
+
+## 💼 Reglas de Negocio (Critical)
+
+### Disponibilidad de Libro
+
+- ✅ Si el libro **NO tiene historial**, está disponible
+- ✅ Si el último estado es **RETURNED**, está disponible
+- ❌ Si el último estado es **ON_LOAN**, NO disponible
+
+### Parámetros Válidos de Préstamo
+
+- `loan_days` permitidos: **7, 14, 21** días únicamente
+- `date_limit` se calcula: `loan_date + loan_days`
+
+### Cálculo de Multa por Retraso
+
+Usa serie de Fibonacci acumulativa:
+
+```
+dias_retraso = (date_return - date_limit) en días
+
+semanas_completas = ((dias_retraso - 1) / 7) + 1
+unidades_fibonacci = sum(fib[0..semanas - 1])
+multa = unidades_fibonacci * BASE_FIB_AMOUNT
+```
+
+**Casos de referencia:**
+- **1 día tarde** → 1 unidad → $1 (o x BASE_FIB_AMOUNT)
+- **7 días tarde** → 1 (fib[0]) → $1
+- **8 días tarde** → 2 (fib[0]+fib[1]) → $2
+- **15 días tarde** → 4 (fib[0..3]) → $4
+- **22 días tarde** → 7 (fib[0..4]) → $7
+
+### Bloqueo de Nuevo Préstamo
+
+❌ No se permite nuevo préstamo si:
+- `debt.state_debt = PENDING`
+
+✅ Se habilita nuevo préstamo después de:
+- Pizar (`POST /api/v1/debt/pay`) → `state_debt = PAID`
+
+---
+
+## 🛠️ Scripts Disponibles
+
+```bash
+# Desarrollo
+npm run dev          # Inicia servidor con nodemon (auto-reload)
+
+# Producción
+npm start            # Inicia servidor en modo production
+
+# Base de datos
+npm run migrate      # Ejecuta schema.sql (solo local)
+
+# Tests
+npm test             # Ejecuta suite completa con Jest
+npm run test:coverage # Genera reporte de cobertura
+
+# Linting (opcional, no configurado aún)
+npm run lint
+```
+
+---
+
+## 🧪 Testing
+
+### Archivos de Test
+
+```
+tests/
+├── unit/
+│   ├── repositories/loanRepository.test.js
+│   ├── repositories/debtRepository.test.js
+│   ├── services/loanService.test.js
+│   └── services/DebtService.test.js
+└── integration/
+    └── routes/
+        ├── loanRoutes.test.js
+        └── debtRoutes.test.js
+```
+
+### Ejecutar Tests
+
+```bash
+# Tests unitarios + integración
+npm test
+
+# Con cobertura
+npm run test:coverage
+
+# Test específico
+npm test -- loanService.test.js
+
+# En modo watch
+npm test -- --watch
+```
+
+### Stack de Testing
+
+- **Framework**: Jest
+- **HTTP**: Supertest (para integración)
+- **Base de datos**: En-memory o fixtures (sin BD real)
+
+---
+
+## 📊 Modelos de Datos
+
+### Entidad: `loan_books`
+
+```sql
+CREATE TABLE loan_books (
+  loan_id SERIAL PRIMARY KEY,
+  id_book VARCHAR NOT NULL,
+  title VARCHAR NOT NULL,
+  type_id_reader VARCHAR NOT NULL,
+  id_reader VARCHAR NOT NULL,
+  name_reader VARCHAR NOT NULL,
+  state VARCHAR NOT NULL,           -- ON_LOAN | RETURNED
+  date_limit DATE NOT NULL,
+  date_return DATE,
+  loan_days INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### Entidad: `debt_reader`
+
+```sql
+CREATE TABLE debt_reader (
+  id_debt SERIAL PRIMARY KEY,
+  loan_id INT REFERENCES loan_books(loan_id),
+  type_id_reader VARCHAR NOT NULL,
+  id_reader VARCHAR NOT NULL,
+  name_reader VARCHAR NOT NULL,
+  amount_debt DECIMAL NOT NULL,
+  state_debt VARCHAR NOT NULL,      -- PENDING | PAID
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+## 🔧 Configuración de Entorno
+
+### Variables Requeridas
+
+```env
+# Base de datos
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# Servidor
+PORT=3000
+NODE_ENV=development|production
+
+# Opcional: Logging
+LOG_LEVEL=debug|info|warn|error
+```
+
+### Archivo `.env.example`
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+PORT=3000
+NODE_ENV=development
+```
+
+---
+
+## 🐳 Docker
+
+### Build
+
+```bash
+docker build -t backend-s7 .
+```
+
+### Run (standalone)
+
+```bash
+docker run -p 3000:3000 \
+  -e DATABASE_URL="postgresql://postgres:postgres@host.docker.internal:5432/postgres" \
+  -e PORT=3000 \
+  backend-s7
+```
+
+### Con docker-compose (recomendado)
+
+Desde `S7-Arquitectura/`:
+
+```bash
+docker compose up --build backend
+```
+
+---
+
+## 📚 Documentación Relacionada
+
+- [**PRD**](../S7-Arquitectura/PRD.md) - Requisitos del producto
+- [**Specs ASDD**](../S7-Arquitectura/.github/specs/) - Especificaciones técnicas detalladas
+- [**Test Plan**](../S7-Arquitectura/TEST_PLAN.md) - Estrategia de testing
+- [**Frontend README**](../S7-Frontend-Sis-Prestamos-y-Multas/README.md) - Documentación del cliente
+- [**Arquitectura Global**](../S7-Arquitectura/CONTRIBUTING.md) - Guía de contribución
+
+---
+
+## 👥 Equipo y Contacto
+
+Proyecto desarrollado para **Sofka**.
+
+Equipo:
+- **QA**: Alexander Molina
+- **DEV**: Gabriel Perero
+
+---
+
+## 📄 Licencia
+
+ISC
 
 - `GET /api/v1/debts/:id_reader` - Get pending debts for a reader
   - Returns the pending debt records for the supplied reader id
@@ -203,13 +570,13 @@ CREATE TABLE debt_reader (
 Build the backend image:
 
 ```bash
-docker compose build backend
+docker build -t backend-s7 .
 ```
 
-Run with docker compose:
+Run with docker image :
 
 ```bash
-docker compose up
+docker run -it --name backend-s7 -e DATABASE_URL="postgresql://postgres:postgres@172.17.0.1:5432/postgres" -e PORT=3000 -e NODE_ENV=development -p 3000:3000 backend-s7
 ```
 
 The API will be available at `http://localhost:3000`
