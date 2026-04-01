@@ -369,12 +369,7 @@ docker build -t backend-s7 .
 ### Run (standalone)
 
 ```bash
-docker run -d --name backend-s7 \
-  -e DATABASE_URL="postgresql://postgres:postgres@172.17.0.1:5432/postgres" \
-  -e PORT=3000 \
-  -e NODE_ENV=development \
-  -p 3000:3000 \
-  backend-s7
+docker run -d --name backend-s7 -e DATABASE_URL="postgresql://postgres:postgres@172.17.0.1:5432/postgres" -e PORT=3000 -e NODE_ENV=development -p 3000:3000 backend-s7
 ```
 
 Para instrucciones completas de inicio, ver [DOCKER_QUICKSTART.md](../S7-Arquitectura/DOCKER_QUICKSTART.md)
