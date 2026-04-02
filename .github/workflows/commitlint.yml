@@ -17,19 +17,21 @@ jobs:
           count=0
           while IFS="|" read -r hash commit; do
             count=$((count + 1))
-            echo "----------------------------------------"
-            echo "COMMIT #$count"
-            echo "Hash: $hash"
-            echo "Message: $commit"
+            echo "========================================"
+            echo "commit number: #$count "
+            echo "Checking commit: $hash"
+            echo "$commit"
             echo "----------------------------------------"
             if [[ ! $commit =~ ^(feat|fix|docs|style|refactor|test|chore|ci|build)(\([a-zA-Z0-9_-]+\))?:\ .+ ]]; then
               echo "❌ Invalid commit message"
+              echo "Commit ID: $hash"
+              echo "Message: $commit"
               echo ""
               errors=$((errors + 1))
             else
               echo "✅ Valid"
             fi
-          done < <(git rev-list origin/${{ github.base_ref }}..HEAD --no-merges --pretty=format:"%h|%s")
+          done < <(git log origin/${{ github.base_ref }}..HEAD --no-merges --format="%h|%s")
           echo "========================================"
           echo "             END OF REVIEW              "
           echo "========================================"
