@@ -19,7 +19,7 @@ jobs:
           while IFS="|" read -r hash commit; do
             count=$((count + 1))
             echo "========================================"
-            echo "commit n° #$count "
+            echo "commit number: #$count "
             echo "Checking commit: $hash"
             echo "$commit"
             echo "----------------------------------------"
@@ -36,6 +36,7 @@ jobs:
           echo "========================================"
           echo "             END OF REVIEW              "
           echo "========================================"
+          echo "Total commits reviewed: $count"
           echo "Total errors: $errors"
           if (( errors > 0 )); then
             echo "❌ Found $errors invalid commit(s)"
