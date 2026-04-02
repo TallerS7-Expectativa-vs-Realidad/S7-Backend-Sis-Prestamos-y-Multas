@@ -70,7 +70,7 @@ describe('PATCH /api/v1/loans (HU-03)', () => {
 
   beforeEach(() => {
     mockPool = { query: jest.fn() };
-    app = makeApp(mockPool);
+    app = makeApp(mockPool, { ready: true });
   });
 
   // ─── TC-HU03-01: Devolución antes de date_limit → 200 ────────

@@ -35,7 +35,7 @@ describe('GET /api/v1/loans/:name (HU-01)', () => {
     mockPool = {
       query: jest.fn(),
     };
-    app = makeApp(mockPool);
+    app = makeApp(mockPool, { ready: true });
   });
 
   // ─── TC-HU01-01: Libro disponible por historial cerrado ────────

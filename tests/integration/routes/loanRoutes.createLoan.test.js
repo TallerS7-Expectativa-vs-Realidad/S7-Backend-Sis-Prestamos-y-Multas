@@ -55,7 +55,7 @@ describe('POST /api/v1/loans (HU-02)', () => {
 
   beforeEach(() => {
     mockPool = { query: jest.fn() };
-    app = makeApp(mockPool);
+    app = makeApp(mockPool, { ready: true });
   });
 
   // ─── TC-HU02-01: Préstamo exitoso → 201 ───────────────────────

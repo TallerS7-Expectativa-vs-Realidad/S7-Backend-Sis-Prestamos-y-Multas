@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 const makeApp = require('./app');
-const { initializeDatabase } = require('./db/initialize');
+const { initializeDatabase, retryWithBackoff } = require('./db/initialize');
 
 // ============================================================
 // DATABASE POOL INITIALIZATION
@@ -10,34 +10,55 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Handle pool errors
+// Flag para rastrear si la BD está lista
+let dbReady = false;
+const dbStatus = { ready: false };
+
+// Handle pool errors - log pero no crashear el servidor
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('[DB] ✗ Error en conexión idle:', err.message);
 });
 
 // ============================================================
-// APP INITIALIZATION & DATABASE SETUP
+// DATABASE INITIALIZATION (NO-BLOQUEANTE)
+// ============================================================
+async function initializeDatabaseInBackground() {
+  try {
+    await retryWithBackoff(() => initializeDatabase(pool));
+    dbReady = true;
+    dbStatus.ready = true;
+    console.log('[DB] ✓ Base de datos lista para recibir requests');
+  } catch (error) {
+    // Esto nunca debería pasar porque retryWithBackoff es indefinido
+    console.error('[DB] ✗ Error crítico en background:', error.message);
+  }
+}
+
+// ============================================================
+// APP INITIALIZATION & SERVER STARTUP
 // ============================================================
 async function startServer() {
   try {
-    // Inicializar base de datos (crear tablas si no existen)
-    await initializeDatabase(pool);
-
-    // Crear app con pool inicializado
-    const app = makeApp(pool);
+    // Crear app con pool (pero BD aún no está lista)
+    const app = makeApp(pool, dbStatus);
     const PORT = process.env.PORT || 3000;
 
     // ============================================================
-    // SERVER STARTUP
+    // INICIAR SERVIDOR INMEDIATAMENTE (NO-BLOQUEANTE)
     // ============================================================
     app.listen(PORT, () => {
       console.log(`[SERVER] ✓ Escuchando en puerto ${PORT}`);
-      console.log(`[SERVER]   Database: ${process.env.DATABASE_URL}`);
+      console.log(`[SERVER]   Database URL: ${process.env.DATABASE_URL}`);
       console.log(`[SERVER]   Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`[SERVER]   ⏳ Conectando a base de datos en background...`);
     });
+
+    // ============================================================
+    // CONECTAR A BD EN PARALELO (NO-BLOQUEANTE)
+    // ============================================================
+    initializeDatabaseInBackground();
   } catch (error) {
-    console.error('[SERVER] ✗ Error inicializando servidor:', error);
+    console.error('[SERVER] ✗ Error crítico inicializando servidor:', error.message);
     process.exit(1);
   }
 }
