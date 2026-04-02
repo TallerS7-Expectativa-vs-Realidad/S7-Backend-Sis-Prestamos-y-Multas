@@ -49,7 +49,7 @@ describe('GET /api/v1/loans/outTime (HU-05)', () => {
     mockPool = {
       query: jest.fn(),
     };
-    app = makeApp(mockPool);
+    app = makeApp(mockPool, { ready: true });
   });
 
   // ─── TC-HU05-01: préstamos vencidos existentes ────────────────

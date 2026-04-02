@@ -62,7 +62,7 @@ describe('PATCH /api/v1/loans — late return (HU-04)', () => {
 
   beforeEach(() => {
     mockPool = { query: jest.fn() };
-    app = makeApp(mockPool);
+    app = makeApp(mockPool, { ready: true });
   });
 
   /**

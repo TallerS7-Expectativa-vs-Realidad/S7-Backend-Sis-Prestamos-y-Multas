@@ -57,7 +57,7 @@ describe('PATCH /api/v1/debts/:id_debt (HU-06)', () => {
 
   beforeEach(() => {
     mockPool = { query: jest.fn() };
-    app = makeApp(mockPool);
+    app = makeApp(mockPool, { ready: true });
   });
 
   // ─── TC-HU06-01: Pago total exitoso → 200 ─────────────────────
@@ -156,7 +156,7 @@ describe('GET /api/v1/debts/:id_reader (HU-06)', () => {
 
   beforeEach(() => {
     mockPool = { query: jest.fn() };
-    app = makeApp(mockPool);
+    app = makeApp(mockPool, { ready: true });
   });
 
   test('returns 200 with pending debts for reader', async () => {

@@ -103,4 +103,34 @@ async function initializeDatabase(pool) {
   }
 }
 
-module.exports = { initializeDatabase };
+/**
+ * Retry Logic with Exponential Backoff (Indefinido)
+ * Intenta conectar a la BD indefinidamente con backoff exponencial
+ * @param {Function} fn - Función que intenta inicializarse
+ * @param {number} initialDelayMs - Delay inicial en ms
+ * @returns {Promise} Resultado de la función
+ */
+async function retryWithBackoff(fn, initialDelayMs = 2000) {
+  let attempt = 1;
+  let lastError;
+  
+  // Reintentos indefinidos hasta conectar exitosamente
+  while (true) {
+    try {
+      console.log(`[DB] Intento ${attempt}...`);
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      // Backoff exponencial: 2s, 4s, 8s, 16s, ... (máximo 2 minutos entre intentos)
+      const delayMs = Math.min(initialDelayMs * Math.pow(2, attempt - 1), 120000);
+      console.warn(
+        `[DB] ✗ Intento ${attempt} falló: ${error.message}. ` +
+        `Reintentando en ${Math.round(delayMs / 1000)}s...`
+      );
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      attempt++;
+    }
+  }
+}
+
+module.exports = { initializeDatabase, retryWithBackoff };
