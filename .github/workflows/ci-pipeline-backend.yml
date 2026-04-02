@@ -1,0 +1,47 @@
+name: Backend CI Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+permissions:
+  issues: write
+
+jobs:
+  # ============================================
+  # STAGE 1: Unit Tests
+  # Falla si: unit tests no pasan
+  # ============================================
+  unit-test:
+    name: Unit Tests
+    uses: ./.github/workflows/ci-unit-backend.yml
+
+  # ============================================
+  # STAGE 2: Integration Tests (paralelo a coverage)
+  # Falla si: integration tests no pasan
+  # ============================================
+  integration-test:
+    name: Integration Tests
+    uses: ./.github/workflows/ci-integration-backend.yml
+
+  # ============================================
+  # STAGE 3: Code Coverage Quality Gate (70%)
+  # Falla si: coverage < 70%
+  # Depende de: unit-test + integration-test (codigo debe ser estable)
+  # ============================================
+  coverage-check:
+    name: Coverage Quality Gate (70% threshold)
+    needs: [unit-test, integration-test]
+    uses: ./.github/workflows/ci-coverage-backend.yml
+
+  # ============================================
+  # STAGE 4: Docker Infrastructure
+  # Falla si: Dockerfile no construye o aplicacion no levanta
+  # Depende de: coverage-check (cobertura validada)
+  # ============================================
+  docker-smoke:
+    name: Docker Smoke Tests
+    needs: [coverage-check]
+    uses: ./.github/workflows/ci-docker-smoke-backend.yml
