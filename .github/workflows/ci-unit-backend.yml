@@ -31,13 +31,3 @@ jobs:
         with:
           name: backend-unit-test-results
           path: coverage/
-
-  create-issue-on-failure:
-    name: Create Issue on Failure
-    needs: [unit-tests]
-    if: failure()
-    uses: ./.github/workflows/create-issue-on-failure.yml
-    with:
-      test-type: "unit"
-      service-name: "backend"
-      workflow-name: "backend - Unit Tests"

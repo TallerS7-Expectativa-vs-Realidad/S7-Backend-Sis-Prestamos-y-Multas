@@ -55,13 +55,3 @@ jobs:
         with:
           name: backend-integration-test-results
           path: coverage/
-
-  create-issue-on-failure:
-    name: Create Issue on Failure
-    needs: [integration-tests]
-    if: failure()
-    uses: ./.github/workflows/create-issue-on-failure.yml
-    with:
-      test-type: "integration"
-      service-name: "backend"
-      workflow-name: "backend - Integration Tests"
