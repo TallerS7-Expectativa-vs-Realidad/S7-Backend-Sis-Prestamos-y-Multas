@@ -45,7 +45,7 @@ jobs:
           push: true
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.sha.outputs.short }}
-            ${{ steps.image.outputs.name }}:latest-dev
+            ${{ steps.image.outputs.name }}:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=development
@@ -60,5 +60,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.image.outputs.name }}:${{ steps.sha.outputs.short }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.image.outputs.name }}:latest-dev" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.image.outputs.name }}:latest" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
