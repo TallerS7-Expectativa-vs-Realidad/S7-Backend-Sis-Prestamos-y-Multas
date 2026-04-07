@@ -15,6 +15,7 @@ jobs:
           echo "Validating commits..."
           errors=0
           count=0
+          BASE=$(git merge-base origin/${{ github.base_ref }} HEAD)
           while IFS="|" read -r hash commit; do
             count=$((count + 1))
             echo "========================================"
