@@ -1,106 +1,397 @@
-# Biblioteca: Sistema de Préstamos y Multas
+# Backend API - Sistema de Préstamos y Multas
 
-MVP documental para definir cómo una biblioteca controla préstamos de libros, fechas de devolución, multas por retraso y rehabilitación del lector después del pago.
+🏗️ **Este es un repositorio de servicios independientes dentro de la arquitectura modular del proyecto.**
 
-## Equipo
+Otros repositorios correlacionados:
+- [**Frontend**](../S7-Frontend-Sis-Prestamos-y-Multas/) - React + Vite
+- [**Arquitectura & Documentación**](../S7-Arquitectura/) - Specs, PRD, Test Plans
 
-- [Alexander Molina](https://github.com/AlexRieger47) - QA
-- [Gabriel Perero](https://github.com/GabrielGNP) - DEV
+---
 
-## Qué problema resuelve
+## 📋 Descripción
 
-La biblioteca necesita una forma clara y consistente de:
+API REST para el sistema de gestión de préstamos de libros y cálculo de multas por devolución tardía. Construido con Node.js, Express y PostgreSQL.
 
-- saber si un libro está disponible o prestado;
-- registrar préstamos con fecha de devolución válida;
-- detectar devoluciones tardías;
-- calcular multas acumulativas por retraso;
-- bloquear nuevos préstamos a lectores con deuda pendiente;
-- rehabilitar al lector cuando paga la multa completa.
+**Objetivo del MVP:**
+- Gestionar disponibilidad de libros mediante historial de préstamos
+- Registrar préstamos con fecha de devolución válida
+- Detectar devoluciones tardías y calcular multas con serie de Fibonacci
+- Bloquear nuevos préstamos a lectores con deuda pendiente
+- Rehabilitar lector al pagar la deuda completa
 
-Esta entrega no construye todavía el software. Su objetivo es dejar una base de producto y backlog lista para implementación posterior.
+---
 
-## Qué incluye este repositorio
+## 🏛️ Arquitectura
 
-- Un PRD con visión, reglas del negocio, alcance del MVP y riesgos.
-- Historias de usuario con valor de negocio, criterios de aceptación, escenarios Gherkin y Story Points.
-- Subtareas DEV y QA por cada historia.
-- Trazabilidad documental del flujo principal del MVP.
-- Referencia al tablero de GitHub Projects para el backlog del taller.
+### Patrón en Capas
 
-## Alcance del MVP documental
+```
+routes (HTTP) → services (lógica negocio) → repositories (DB) → PostgreSQL
+```
 
-### Dentro del alcance
+### Estructura de Directorios
 
-- Registrar el préstamo de un libro disponible.
-- Permitir solo plazos de 7, 14 o 21 días.
-- Calcular automáticamente la fecha de devolución.
-- Registrar devoluciones dentro del plazo sin multa.
-- Registrar devoluciones tardías con multa acumulativa.
-- Aplicar lógica de multa Fibonacci por semanas de mora.
-- Consultar préstamos vencidos y lector responsable.
-- Registrar el pago total de una multa para rehabilitar al lector.
-- Bloquear préstamos a lectores con deuda pendiente.
+```
+S7-Backend-Sis-Prestamos-y-Multas/
+├── src/
+│   ├── index.js                    # Entry point
+│   ├── app.js                      # Express app setup
+│   ├── db/
+│   │   └── initialize.js           # Inicialización automática de BD
+│   ├── middleware/
+│   │   ├── errorHandler.js         # Manejo centralizado de errores
+│   │   ├── corsMiddleware.js       # CORS config
+│   │   └── requestLogger.js        # Logging de requests
+│   ├── models/
+│   │   ├── Loan.js                 # DTO Loan + validación (Zod)
+│   │   └── debt.js                 # DTO Debt + validación (Zod)
+│   ├── repositories/
+│   │   ├── loanRepository.js       # Acceso a datos: préstamos
+│   │   └── debtRepository.js       # Acceso a datos: deudas
+│   ├── services/
+│   │   ├── loanService.js          # Lógica: búsqueda y gestión de préstamos
+│   │   └── DebtService.js          # Lógica: cálculo de deudas y pagos
+│   └── routes/
+│       ├── loanRoutes.js           # Endpoints: GET, POST, PATCH /loans
+│       ├── debtRoutes.js           # Endpoints: POST /debt/pay
+│       └── readersRoutes.js        # Endpoints: lectores (opcional)
+├── db/
+│   ├── schema.sql                  # Esquema de base de datos
+│   ├── initialize.js               # Auto-inicialización al arrancar backend
+│   └── migrate.js                  # Script local para migrations (dev)
+├── tests/
+│   ├── unit/
+│   │   ├── repositories/           # Tests de acceso a datos
+│   │   └── services/               # Tests de lógica de negocio
+│   └── integration/
+│       └── routes/                 # Tests de endpoints
+├── Dockerfile                      # Imagen Docker del backend
+├── docker-compose.yml              # (En S7-Arquitectura) Orquestación
+├── package.json
+├── .env.example                    # Template de variables de entorno
+└── README.md
+```
 
-### Fuera del alcance
+---
 
-- Prórrogas de préstamo.
-- Reservas.
-- Administración completa del catálogo.
-- Membresías o administración de usuarios.
-- Notificaciones automáticas.
-- Pagos parciales.
-- Reportería avanzada.
+## 🚀 Instalación y Configuración
 
-## Historias del MVP
+### Requisitos Previos
 
-- HU-01: Consultar estado y disponibilidad de un libro.
-- HU-02: Registrar libro disponible a un lector habilitado.
-- HU-03: Registrar devolución de un libro dentro del plazo.
-- HU-04: Registrar devolución tardía y generar multa Fibonacci.
-- HU-05: Consultar libros fuera de plazo y lector responsable.
-- HU-06: Registrar el pago total de una multa y rehabilitación del lector.
+- **Node.js** 18+ o **Docker**
+- **PostgreSQL** 15+ (proporcionado vía Docker)
+- **npm** o **yarn**
 
-## Reparto de trabajo DEV y QA
+### Opción A: Con Docker (Recomendado)
 
-### DEV
+Desde el directorio raíz (`S7-Arquitectura` o donde esté `docker-compose.yml`):
 
-- Traducir cada historia a componentes técnicos concretos.
-- Definir subtareas de UI, endpoints, persistencia, validaciones y lógica de dominio.
-- Aterrizar el comportamiento esperado del sistema en trabajo implementable.
+```bash
+docker compose up --build
+```
 
-### QA
+El backend:
+1. Se construye desde `S7-Backend-Sis-Prestamos-y-Multas/Dockerfile`
+2. Conecta a PostgreSQL automáticamente
+3. Ejecuta `db/initialize.js` al iniciar → crea tablas si no existen
+4. Expone la API en `http://localhost:3000`
 
-- Definir criterios de aceptación verificables.
-- Redactar escenarios Gherkin centrados en comportamiento de negocio.
-- Diseñar validaciones, alternos, bordes, datos de prueba y notas de calidad.
+### Opción B: Local (desarrollo)
 
-## Documentos principales
+#### 1. Instalar dependencias
 
-- [PRD.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/PRD.md)
-- [USER_STORIES.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/USER_STORIES.md)
-- [SUBTASKS.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/SUBTASKS.md)
+```bash
+cd S7-Backend-Sis-Prestamos-y-Multas
+npm install
+```
 
-## Tablero de trabajo
+#### 2. Configurar variables de entorno
 
-- [GitHub Projects del repositorio](https://github.com/users/GabrielGNP/projects/8/)
+```bash
+cp .env.example .env
+```
 
-## Definition of Ready
+Editar `.env` según tu entorno local (por defecto conecta a `localhost:5432`):
 
-Una historia se considera lista cuando:
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+PORT=3000
+NODE_ENV=development
+```
 
-- Tiene valor de negocio claro.
-- Sus reglas relacionadas están identificadas.
-- Sus criterios de aceptación son entendibles y verificables.
-- Tiene subtareas DEV y QA coherentes.
-- Tiene una estimación razonable en Story Points.
+#### 3. Inicializar base de datos
 
-## Definition of Done
+```bash
+npm run migrate
+```
 
-Para esta entrega documental, una historia se considera terminada cuando:
+O iniciar el backend (ejecuta auto-inicialización):
 
-- Queda redactada en [USER_STORIES.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/USER_STORIES.md).
-- Tiene criterios de aceptación y escenarios Gherkin.
-- Tiene subtareas DEV y QA en [SUBTASKS.md](https://github.com/GabrielGNP/S6-Biblioteca-Sistema-de-Prestamos-y-Multas/blob/main/SUBTASKS.md).
-- Su estimación es coherente con el trabajo descrito.
-- Mantiene consistencia con el PRD y con el tablero.
+```bash
+npm run dev
+```
+
+---
+
+## 📡 Endpoints de API
+
+### Loans (Préstamos)
+
+| Método | Endpoint | Propósito | Estados |
+|--------|----------|----------|---------|
+| **GET** | `/api/v1/loans/{name}` | Buscar disponibilidad de libro | HU-01 ✅ |
+| **POST** | `/api/v1/loans` | Registrar nuevo préstamo | HU-02 |
+| **PATCH** | `/api/v1/loans` | Registrar devolución | HU-03, HU-04 |
+| **GET** | `/api/v1/loans/overdue` | Listar préstamos vencidos | HU-05 |
+
+#### GET `/api/v1/loans/{name}` - Buscar libro
+
+```bash
+curl http://localhost:3000/api/v1/loans/harry%20potter
+```
+
+**Response (200):**
+```json
+{
+  "available": true,
+  "book": {
+    "id_book": "B001",
+    "title": "Harry Potter",
+    "lastState": "RETURNED"
+  }
+}
+```
+
+#### POST `/api/v1/loans` - Registrar préstamo
+
+```bash
+curl -X POST http://localhost:3000/api/v1/loans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_book": "B001",
+    "title": "Harry Potter",
+    "type_id_reader": "CC",
+    "id_reader": "12345678",
+    "name_reader": "Juan Pérez",
+    "loan_days": 14
+  }'
+```
+
+**Response (201):** Loan created
+**Errores:**
+- `400` - Datos inválidos
+- `409` - Libro no disponible o lector con deuda pendiente
+
+#### PATCH `/api/v1/loans` - Registrar devolución
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/loans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "date_return": "2026-04-01",
+    "type_id_reader": "CC",
+    "id_reader": "12345678"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Loan processed",
+  "debt": null  // Si fue a tiempo; sino contiene deuda
+}
+```
+
+**Errores:**
+- `400` - Datos inválidos
+- `404` - Préstamo no encontrado
+- `409` - Préstamo ya devuelto
+
+### Debts (Deudas)
+
+| Método | Endpoint | Propósito | Estado |
+|--------|----------|----------|--------|
+| **GET** | `/api/v1/debt/{id_reader}` | Obtener deuda actual de lector | - |
+| **POST** | `/api/v1/debt/pay` | Registrar pago de deuda | HU-06 |
+
+#### POST `/api/v1/debt/pay` - Pagar deuda
+
+```bash
+curl -X POST http://localhost:3000/api/v1/debt/pay \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type_id_reader": "CC",
+    "id_reader": "12345678"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Debt paid successfully",
+  "reader": {
+    "id_reader": "12345678",
+    "name_reader": "Juan Pérez",
+    "state_debt": "PAID"
+  }
+}
+```
+
+**Errores:**
+- `400` - Lector sin deuda pendiente
+- `404` - Lector no encontrado
+
+---
+
+## 💼 Reglas de Negocio Críticas
+
+### Disponibilidad de Libros (HU-01)
+- ✅ Disponible si sin historial O último estado = RETURNED
+- ❌ NO disponible si último estado = ON_LOAN
+
+### Validaciones de Préstamo (HU-02)
+- `loan_days` válidos: **7, 14, 21** días únicamente
+- Libro debe estar disponible
+- Lector no puede tener deuda pendiente (state_debt = PENDING)
+
+### Cálculo de Multa por Retraso (HU-03/04)
+Se usa serie de Fibonacci acumulativa por cada semana completa de retraso:
+
+| Días tarde | Semanas | Unidades Fib | Monto |
+|-----------|---------|-------------|-------|
+| 1-7 | 1 | 1 | $1 |
+| 8-14 | 2 | 2 | $2 |
+| 15-21 | 3 | 4 | $4 |
+| 22-28 | 4 | 7 | $7 |
+
+### Bloqueo de Préstamos (HU-02)
+- No se permite préstamo si `state_debt = PENDING`
+- Se habilita después de pago completo: `POST /api/v1/debt/pay`
+
+---
+
+## 🛠️ Scripts Disponibles
+
+```bash
+npm run dev              # Desarrollo (nodemon, auto-reload)
+npm start               # Producción
+npm run migrate         # Iniciar BD (local)
+npm test                # Tests unitarios + integración
+npm run test:coverage   # Reporte de cobertura
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+npm test                      # Suite completa
+npm test -- loanService       # Test específico
+npm test -- --watch           # Modo watch
+npm run test:coverage         # Con cobertura
+```
+
+**Stack**: Jest + Supertest, sin BD real (mocks/fixtures)
+
+---
+
+## 📊 Modelos de Datos
+
+### Tabla: `loan_books`
+
+| Campo | Tipo | Constraint | Descripción |
+|-------|------|-----------|-------------|
+| `loan_id` | SERIAL | PRIMARY KEY | ID único del préstamo |
+| `id_book` | VARCHAR | NOT NULL | ID del libro |
+| `title` | VARCHAR | NOT NULL | Título del libro |
+| `type_id_reader` | VARCHAR | NOT NULL | Tipo de identificación |
+| `id_reader` | VARCHAR | NOT NULL | ID del lector |
+| `name_reader` | VARCHAR | NOT NULL | Nombre del lector |
+| `loan_days` | INT | CHECK (7,14,21) | Días de préstamo válidos |
+| `state` | VARCHAR | ON_LOAN\|RETURNED | Estado actual |
+| `date_limit` | DATE | NOT NULL | Fecha máxima devolución |
+| `date_return` | DATE | NULL | Fecha de devolución real |
+| `created_at` | TIMESTAMP | DEFAULT NOW() | Fecha de creación |
+| `updated_at` | TIMESTAMP | DEFAULT NOW() | Última actualización |
+
+### Tabla: `debt_reader`
+
+| Campo | Tipo | Constraint | Descripción |
+|-------|------|-----------|-------------|
+| `id_debt` | SERIAL | PRIMARY KEY | ID único de deuda |
+| `loan_id` | INT | FOREIGN KEY | Referencia al préstamo |
+| `type_id_reader` | VARCHAR | NOT NULL | Tipo de identificación |
+| `id_reader` | VARCHAR | NOT NULL | ID del lector |
+| `name_reader` | VARCHAR | NOT NULL | Nombre del lector |
+| `amount_debt` | DECIMAL | NOT NULL | Cantidad de deuda |
+| `state_debt` | VARCHAR | PENDING\|PAID | Estado de deuda |
+| `created_at` | TIMESTAMP | DEFAULT NOW() | Fecha de creación |
+| `updated_at` | TIMESTAMP | DEFAULT NOW() | Última actualización |
+
+---
+
+## 🔧 Configuración de Entorno
+
+### Variables Requeridas
+
+```env
+# Base de datos
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# Servidor
+PORT=3000
+NODE_ENV=development|production
+
+# Opcional: Logging
+LOG_LEVEL=debug|info|warn|error
+```
+
+### Archivo `.env.example`
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+PORT=3000
+NODE_ENV=development
+```
+
+---
+
+## 🐳 Docker
+
+### Build
+
+```bash
+docker build -t backend-s7 .
+```
+
+### Run (standalone)
+
+```bash
+docker run -d --name backend-s7 -e DATABASE_URL="postgresql://postgres:postgres@172.17.0.1:5432/postgres" -e PORT=3000 -e NODE_ENV=development -p 3000:3000 backend-s7
+```
+
+Para instrucciones completas de inicio, ver [DOCKER_QUICKSTART.md](../S7-Arquitectura/DOCKER_QUICKSTART.md)
+
+---
+
+## 📚 Documentación Relacionada
+
+- [**PRD**](../S7-Arquitectura/PRD.md) - Requisitos del producto
+- [**Specs ASDD**](../S7-Arquitectura/.github/specs/) - Especificaciones técnicas por HU
+- [**Frontend README**](../S7-Frontend-Sis-Prestamos-y-Multas/README.md) - Documentación del cliente
+- [**Docker Quick Start**](../S7-Arquitectura/DOCKER_QUICKSTART.md) - Guía de inicio rápido
+
+---
+
+## 👥 Equipo
+
+- **QA**: Alexander Molina
+- **DEV**: Gabriel Perero
+
+---
+
+## 📄 Licencia
+
+ISC
